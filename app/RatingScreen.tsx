@@ -1,21 +1,22 @@
-// src/screens/RatingScreen.tsx
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { styles } from '../../components/styles/theme';
-import { colors } from '../../components/utils/helpers';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../components/navigation/types';
+import { Alert, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Rating'>;
+import { styles } from '../components/styles/theme';
+import { colors } from '../components/utils/helpers';
 
-export default function RatingScreen({ route, navigation }: Props) {
-  const { rideNumber } = route.params;
+export default function RatingScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ rideNumber: string }>();
+  const { rideNumber } = params;
+
   const [rating, setRating] = useState<number>(5);
   const [review, setReview] = useState<string>('');
 
   const submit = () => {
     Alert.alert('Thanks!', `You rated ${rating} stars`);
-    navigation.replace('HomeTabs');
+    // Navigate to your Tabs screen
+    router.replace('./'); // <-- match your TabLayout/index.tsx
   };
 
   return (
@@ -32,7 +33,14 @@ export default function RatingScreen({ route, navigation }: Props) {
           ))}
         </View>
 
-        <TextInput placeholder="Optional feedback" placeholderTextColor={colors.muted} style={styles.input} value={review} onChangeText={setReview} />
+        <TextInput
+          placeholder="Optional feedback"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={review}
+          onChangeText={setReview}
+        />
+
         <TouchableOpacity style={styles.primaryButton} onPress={submit}>
           <Text style={{ color: '#fff' }}>Submit</Text>
         </TouchableOpacity>
