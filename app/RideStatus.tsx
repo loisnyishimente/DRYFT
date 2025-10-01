@@ -1,15 +1,21 @@
-// src/screens/RideStatus.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { SafeAreaView, View, Text, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { styles } from '../../components/styles/theme';
-import { colors } from '../../components/utils/helpers';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../components/navigation/types';
+import { ActivityIndicator, Alert, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'RideStatus'>;
+import { styles } from '../components/styles/theme';
+import { colors } from '../components/utils/helpers';
 
-export default function RideStatus({ route, navigation }: Props) {
-  const { rideNumber, pickup, destination, category } = route.params;
+export default function RideStatus() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    rideNumber: string;
+    pickup: string;
+    destination: string;
+    category: string;
+  }>();
+
+  const { rideNumber, pickup, destination, category } = params;
+
   const [driverAssigned, setDriverAssigned] = useState<boolean>(false);
   const [driver, setDriver] = useState<{ name: string; contact: string; plate: string } | null>(null);
   const [position, setPosition] = useState<number>(0);
@@ -30,7 +36,7 @@ export default function RideStatus({ route, navigation }: Props) {
 
   const cancelRide = () => {
     Alert.alert('Ride canceled');
-    navigation.popToTop();
+    router.replace('./'); // go back to your home tabs
   };
 
   const contactDriver = () => {
@@ -44,7 +50,11 @@ export default function RideStatus({ route, navigation }: Props) {
   const completeRide = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     const fare = (Math.random() * 10 + 3).toFixed(2);
-    navigation.replace('Payment', { rideNumber, fare });
+
+    router.replace({
+      pathname: './(tabs)/PaymentScreen', // must match your PaymentScreen path
+      params: { rideNumber, fare },
+    });
   };
 
   return (
@@ -65,6 +75,7 @@ export default function RideStatus({ route, navigation }: Props) {
             <Text style={{ fontWeight: '600' }}>Driver: {driver?.name}</Text>
             <Text>Plate: {driver?.plate}</Text>
             <Text>Contact: {driver?.contact}</Text>
+
             <View style={{ marginTop: 12 }}>
               <Text>Driver is {position}% close (mock tracking)</Text>
               <View style={{ height: 12, backgroundColor: '#eee', borderRadius: 6, overflow: 'hidden', marginTop: 6 }}>
@@ -73,7 +84,10 @@ export default function RideStatus({ route, navigation }: Props) {
             </View>
 
             <View style={{ flexDirection: 'row', marginTop: 16, justifyContent: 'space-between' }}>
-              <TouchableOpacity style={[styles.smallButton, { backgroundColor: '#fff', borderColor: colors.primary, borderWidth: 1 }]} onPress={cancelRide}>
+              <TouchableOpacity
+                style={[styles.smallButton, { backgroundColor: '#fff', borderColor: colors.primary, borderWidth: 1 }]}
+                onPress={cancelRide}
+              >
                 <Text>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.smallButton} onPress={contactDriver}>

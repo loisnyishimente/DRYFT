@@ -1,7 +1,7 @@
 // src/screens/WalletScreen.tsx
 import React from 'react';
 import { SafeAreaView, Text } from 'react-native';
-import { styles } from '../../components/styles/theme';
+import { styles } from '../components/styles/theme';
 
 export default function WalletScreen() {
   return (

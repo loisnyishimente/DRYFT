@@ -5,6 +5,7 @@ export const colors = {
     background: '#0b2f2a',
     light: '#e6f7f1',
     muted: '#94b7ac',
+    text: '#212121',
   };
   
   export const genRideNumber = (): string =>
