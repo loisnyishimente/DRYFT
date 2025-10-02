@@ -16,6 +16,10 @@ import {
 } from 'react-native';
 import { styles } from '../components/styles/theme';
 import { colors } from '../components/utils/helpers';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
+
 
 const { width } = Dimensions.get('window');
 
@@ -29,13 +33,11 @@ export default function AuthScreen() {
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [otp, setOtp] = useState<string>('');
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const formAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Initial entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -52,7 +54,6 @@ export default function AuthScreen() {
   }, []);
 
   useEffect(() => {
-    // Form transition animation
     Animated.spring(formAnim, {
       toValue: otpSent ? 1 : 0,
       tension: 50,
@@ -87,7 +88,7 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1, width: '100%' }}
@@ -99,26 +100,30 @@ export default function AuthScreen() {
           <Animated.View 
             style={{
               width: '90%',
-              maxWidth: 400,
+              maxWidth: 420,
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             }}
           >
-            {/* Header Section */}
+            {/* Header */}
             <View style={{ marginBottom: 40, alignItems: 'center' }}>
               <Text style={{
-                fontSize: 32,
-                fontWeight: 'bold',
+                fontSize: 40,
+                fontWeight: '900',
                 color: colors.primary,
-                marginBottom: 8,
-                letterSpacing: 1,
+                letterSpacing: 2,
+                textShadowColor: colors.primary + '40',
+                textShadowOffset: { width: 0, height: 4 },
+                textShadowRadius: 8,
               }}>
                 DRYFT
               </Text>
               <Text style={{
-                fontSize: 16,
+                fontSize: 17,
                 color: colors.muted,
                 textAlign: 'center',
+                fontWeight: '500',
+                marginTop: 6,
               }}>
                 {isRegister ? 'Create your account' : 'Welcome back'}
               </Text>
@@ -127,8 +132,8 @@ export default function AuthScreen() {
             {/* Toggle Buttons */}
             <View style={{
               flexDirection: 'row',
-              backgroundColor: colors.muted + '20',
-              borderRadius: 12,
+              backgroundColor: colors.muted + '18',
+              borderRadius: 30,
               padding: 4,
               marginBottom: 30,
             }}>
@@ -136,15 +141,19 @@ export default function AuthScreen() {
                 onPress={() => toggleAuthMode(true)}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 10,
+                  paddingVertical: 14,
+                  borderRadius: 25,
                   backgroundColor: isRegister ? colors.primary : 'transparent',
                   alignItems: 'center',
+                  shadowColor: isRegister ? colors.primary : 'transparent',
+                  shadowOpacity: isRegister ? 0.25 : 0,
+                  shadowRadius: 6,
+                  elevation: isRegister ? 3 : 0,
                 }}
               >
                 <Text style={{
                   color: isRegister ? '#fff' : colors.muted,
-                  fontWeight: isRegister ? '600' : '400',
+                  fontWeight: '600',
                   fontSize: 15,
                 }}>
                   Register
@@ -154,15 +163,19 @@ export default function AuthScreen() {
                 onPress={() => toggleAuthMode(false)}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 10,
+                  paddingVertical: 14,
+                  borderRadius: 25,
                   backgroundColor: !isRegister ? colors.primary : 'transparent',
                   alignItems: 'center',
+                  shadowColor: !isRegister ? colors.primary : 'transparent',
+                  shadowOpacity: !isRegister ? 0.25 : 0,
+                  shadowRadius: 6,
+                  elevation: !isRegister ? 3 : 0,
                 }}
               >
                 <Text style={{
                   color: !isRegister ? '#fff' : colors.muted,
-                  fontWeight: !isRegister ? '600' : '400',
+                  fontWeight: '600',
                   fontSize: 15,
                 }}>
                   Login
@@ -171,92 +184,29 @@ export default function AuthScreen() {
             </View>
 
             {/* Form Fields */}
-            <View style={{ gap: 16 }}>
+            <View style={{ gap: 18 }}>
               {isRegister && (
-                <View>
-                  <Text style={{
-                    fontSize: 13,
-                    color: colors.muted,
-                    marginBottom: 6,
-                    marginLeft: 4,
-                    fontWeight: '500',
-                  }}>
-                    Full Name
-                  </Text>
-                  <TextInput
-                    placeholder="Enter your full name"
-                    placeholderTextColor={colors.muted + '80'}
-                    style={[styles.input, {
-                      backgroundColor: '#fff',
-                      borderWidth: 1,
-                      borderColor: colors.muted + '30',
-                      borderRadius: 12,
-                      paddingHorizontal: 16,
-                      paddingVertical: 14,
-                      fontSize: 15,
-                    }]}
-                    value={name}
-                    onChangeText={setName}
-                  />
-                </View>
+                <InputField
+                  label="Full Name"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChangeText={setName}
+                />
               )}
-              
-              <View>
-                <Text style={{
-                  fontSize: 13,
-                  color: colors.muted,
-                  marginBottom: 6,
-                  marginLeft: 4,
-                  fontWeight: '500',
-                }}>
-                  Email
-                </Text>
-                <TextInput
-                  placeholder="your@email.com"
-                  placeholderTextColor={colors.muted + '80'}
-                  style={[styles.input, {
-                    backgroundColor: '#fff',
-                    borderWidth: 1,
-                    borderColor: colors.muted + '30',
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    fontSize: 15,
-                  }]}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View>
-                <Text style={{
-                  fontSize: 13,
-                  color: colors.muted,
-                  marginBottom: 6,
-                  marginLeft: 4,
-                  fontWeight: '500',
-                }}>
-                  Phone Number
-                </Text>
-                <TextInput
-                  placeholder="+1 (555) 000-0000"
-                  placeholderTextColor={colors.muted + '80'}
-                  style={[styles.input, {
-                    backgroundColor: '#fff',
-                    borderWidth: 1,
-                    borderColor: colors.muted + '30',
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    fontSize: 15,
-                  }]}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                />
-              </View>
+              <InputField
+                label="Email"
+                placeholder="name@email.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+              />
+              <InputField
+                label="Phone Number"
+                placeholder="+250-000-0000"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
 
               {otpSent && (
                 <Animated.View style={{
@@ -268,34 +218,14 @@ export default function AuthScreen() {
                     }),
                   }],
                 }}>
-                  <Text style={{
-                    fontSize: 13,
-                    color: colors.muted,
-                    marginBottom: 6,
-                    marginLeft: 4,
-                    fontWeight: '500',
-                  }}>
-                    Verification Code
-                  </Text>
-                  <TextInput
+                  <InputField
+                    label="Verification Code"
                     placeholder="Enter 6-digit code"
-                    placeholderTextColor={colors.muted + '80'}
-                    style={[styles.input, {
-                      backgroundColor: '#fff',
-                      borderWidth: 1,
-                      borderColor: colors.accent + '50',
-                      borderRadius: 12,
-                      paddingHorizontal: 16,
-                      paddingVertical: 14,
-                      fontSize: 15,
-                      letterSpacing: 4,
-                      textAlign: 'center',
-                      fontWeight: '600',
-                    }]}
                     value={otp}
                     onChangeText={setOtp}
                     keyboardType="number-pad"
                     maxLength={6}
+                    center
                   />
                 </Animated.View>
               )}
@@ -303,35 +233,96 @@ export default function AuthScreen() {
 
             {/* Action Button */}
             <TouchableOpacity 
-              style={[styles.primaryButton, {
-                marginTop: 30,
-                backgroundColor: colors.primary,
-                borderRadius: 12,
-                paddingVertical: 16,
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 5,
-              }]}
               onPress={otpSent ? verifyOtp : sendOtp}
+              activeOpacity={0.9}
+              style={{ marginTop: 36, borderRadius: 14, overflow: 'hidden' }}
             >
-              <Text style={{ 
-                color: '#fff', 
-                fontSize: 16, 
-                fontWeight: '600',
-                letterSpacing: 0.5,
-              }}>
-                {otpSent ? 'Verify & Continue' : 'Send Verification Code'}
-              </Text>
+              <LinearGradient
+                colors={[colors.primary, colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  paddingVertical: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: 14,
+                  shadowColor: colors.primary,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}
+              >
+                <Text style={{
+                  color: '#fff',
+                  fontSize: 17,
+                  fontWeight: '700',
+                  letterSpacing: 0.5,
+                }}>
+                  {otpSent ? 'Verify & Continue' : 'Send'}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
+ {/* OR Divider */}
+<View style={{ 
+  flexDirection: 'row', 
+  alignItems: 'center', 
+  marginVertical: 30 
+}}>
+  <View style={{ flex: 1, height: 1, backgroundColor: colors.muted + '40' }} />
+  <Text style={{ marginHorizontal: 12, color: colors.muted, fontSize: 13 }}>
+    OR
+  </Text>
+  <View style={{ flex: 1, height: 1, backgroundColor: colors.muted + '40' }} />
+</View>
+
+{/* Google Button */}
+<TouchableOpacity 
+  style={{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.muted + '40',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 15,
+  }}
+  onPress={() => Alert.alert('Google Login', 'Google login pressed')}
+>
+  <AntDesign name="google" size={20} color="#DB4437" style={{ marginRight: 10 }} />
+  <Text style={{ fontSize: 15, fontWeight: '500', color: '#333' }}>
+    Continue with Google
+  </Text>
+</TouchableOpacity>
+
+{/* Facebook Button */}
+<TouchableOpacity 
+  style={{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.muted + '40',
+    paddingVertical: 14,
+    borderRadius: 12,
+  }}
+  onPress={() => Alert.alert('Facebook Login', 'Facebook login pressed')}
+>
+  <FontAwesome name="facebook" size={20} color="#1877F2" style={{ marginRight: 10 }} />
+  <Text style={{ fontSize: 15, fontWeight: '500', color: '#333' }}>
+    Continue with Facebook
+  </Text>
+</TouchableOpacity>
+
 
             {otpSent && (
               <TouchableOpacity 
                 onPress={() => setOtpSent(false)}
                 style={{ marginTop: 16, alignItems: 'center' }}
               >
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '500' }}>
+                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>
                   Resend Code
                 </Text>
               </TouchableOpacity>
@@ -342,17 +333,64 @@ export default function AuthScreen() {
               textAlign: 'center',
               color: colors.muted,
               fontSize: 12,
-              marginTop: 30,
+              marginTop: 36,
               lineHeight: 18,
             }}>
               By continuing, you agree to our{'\n'}
-              <Text style={{ color: colors.primary, fontWeight: '500' }}>Terms of Service</Text>
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Terms of Service</Text>
               {' & '}
-              <Text style={{ color: colors.primary, fontWeight: '500' }}>Privacy Policy</Text>
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Privacy Policy</Text>
             </Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+/* 🔹 Reusable Input Field */
+function InputField({ 
+  label, placeholder, value, onChangeText, keyboardType = 'default', maxLength, center = false 
+}: any) {
+  return (
+    <View>
+      <Text style={{
+        fontSize: 13,
+        color: colors.muted,
+        marginBottom: 6,
+        marginLeft: 4,
+        fontWeight: '500',
+      }}>
+        {label}
+      </Text>
+      <View style={{
+        borderWidth: 1,
+        borderColor: colors.muted + '30',
+        backgroundColor: '#fff',
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: 6,
+        elevation: 2,
+      }}>
+        <TextInput
+          placeholder={placeholder}
+          placeholderTextColor={colors.muted + '70'}
+          style={{
+            paddingVertical: 14,
+            fontSize: 15,
+            fontWeight: '500',
+            textAlign: center ? 'center' : 'left',
+            letterSpacing: center ? 3 : 0,
+          }}
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType}
+          maxLength={maxLength}
+        />
+      </View>
+    </View>
   );
 }
