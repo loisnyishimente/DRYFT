@@ -9,7 +9,7 @@ export default function RootLayout() {
       {/* Non-tab screens */}
       <Stack.Screen name="welcome" />
       <Stack.Screen name="auth" />
-      <Stack.Screen name="ride/status" />
+      <Stack.Screen name="ride-selection" />
       <Stack.Screen name="payment" />
       <Stack.Screen name="rating" />
     </Stack>

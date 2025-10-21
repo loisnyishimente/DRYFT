@@ -99,7 +99,7 @@ export default function Welcome() {
             paddingBottom: 5,
           }}>
             <TouchableOpacity
-              onPress={() => router.push('/AuthScreen')}
+              onPress={() => router.push('/auth/AuthScreen')}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -334,7 +334,7 @@ export default function Welcome() {
           }}>
             {/* Primary CTA */}
             <TouchableOpacity
-              onPress={() => router.push('/AuthScreen')}
+              onPress={() => router.push('/auth/AuthScreen')}
               style={{
                 backgroundColor: colors.primary,
                 paddingVertical: 18,

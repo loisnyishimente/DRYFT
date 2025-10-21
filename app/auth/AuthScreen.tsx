@@ -1,24 +1,22 @@
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    Dimensions,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { styles } from '../components/styles/theme';
-import { colors } from '../components/utils/helpers';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AntDesign, FontAwesome } from '@expo/vector-icons';
+import { colors } from '../../components/utils/helpers';
 
 
 const { width } = Dimensions.get('window');
@@ -75,7 +73,7 @@ export default function AuthScreen() {
   const verifyOtp = () => {
     if (otp === '1234') {
       Alert.alert('Success', isRegister ? 'Account created successfully!' : 'Welcome back!');
-      router.replace('/(tabs)/home');
+      router.replace('/home');
     } else {
       Alert.alert('Invalid Code', 'Please use 1234 in this demo');
     }
