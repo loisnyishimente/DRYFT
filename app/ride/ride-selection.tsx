@@ -11,12 +11,11 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { X, Share2, MapPin, Clock, Users, Star } from 'lucide-react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useRouter } from 'expo-router';
-
 
 const screenHeight = Dimensions.get('window').height;
 const darkGreen = '#065F46';
@@ -39,7 +38,6 @@ const mockPlaceSuggestions = (query: string) => {
 };
 
 export default function RideBookingScreen() {
-  // ✅ Must call hook at top-level
   const params = useLocalSearchParams();
 
   const [selectedVehicle, setSelectedVehicle] = useState('Economy');
@@ -55,74 +53,101 @@ export default function RideBookingScreen() {
   const [showVehicleDetails, setShowVehicleDetails] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const router = useRouter();
 
   const mapRef = useRef<MapView>(null);
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
 
   const vehicleCategories = [
-    { 
-      name: 'Economy', 
-      emoji: '🚗', 
-      price: '2 RWF',
+    {
+      name: 'Economy',
+      emoji: '🚗',
+      price: '2',
       description: 'Affordable rides for daily commutes',
       capacity: '4 passengers',
       features: ['Air conditioning', 'Comfortable seats', 'Standard luggage space'],
       rating: 4.5,
+      driverName: 'Jean Mukama',
+      driverPhoto: '👨🏾',
+      licenseNumber: 'RAA 234 K',
+      carModel: 'Toyota Corolla 2020',
+      seats: 4,
+      color: 'Silver',
     },
-    { 
-      name: '7-Seater', 
-      emoji: '🚐', 
-      price: '5 RWF',
+    {
+      name: '7-Seater',
+      emoji: '🚐',
+      price: '5',
       description: 'Perfect for groups and families',
       capacity: '7 passengers',
       features: ['Extra space', 'Air conditioning', 'Large luggage capacity'],
       rating: 4.7,
+      driverName: 'Emmanuel Nshuti',
+      driverPhoto: '👨🏿',
+      licenseNumber: 'RAB 567 L',
+      carModel: 'Toyota Noah 2019',
+      seats: 7,
+      color: 'White',
     },
-    { 
-      name: 'Mid-Luxury', 
-      emoji: '🚙', 
-      price: '10 RWF',
+    {
+      name: 'Mid-Luxury',
+      emoji: '🚙',
+      price: '10',
       description: 'Premium comfort for special occasions',
       capacity: '4 passengers',
       features: ['Leather seats', 'Premium sound system', 'Bottled water'],
       rating: 4.8,
+      driverName: 'Patrick Uwase',
+      driverPhoto: '👨🏾‍💼',
+      licenseNumber: 'RAC 890 M',
+      carModel: 'BMW X3 2021',
+      seats: 4,
+      color: 'Black',
     },
-    { 
-      name: 'Corporate/Executive', 
-      emoji: '🚘', 
-      price: '15 RWF',
+    {
+      name: 'Corporate/Executive',
+      emoji: '🚘',
+      price: '15',
       description: 'Elite service for business travelers',
       capacity: '4 passengers',
       features: ['Luxury interior', 'Professional drivers', 'Wi-Fi', 'Refreshments'],
       rating: 4.9,
+      driverName: 'David Habimana',
+      driverPhoto: '👨🏾‍💼',
+      licenseNumber: 'RAD 123 N',
+      carModel: 'Mercedes-Benz E-Class 2022',
+      seats: 4,
+      color: 'Charcoal Gray',
     },
   ];
 
-  // ✅ Initialize map and pickup location
+  // Initialize map and pickup location
   useEffect(() => {
-    const initialPickup = {
-      latitude: Number(params.pickupLat) || -1.9441,
-      longitude: Number(params.pickupLng) || 30.0619,
-    };
-    
+    const pickupLat = Number(params.pickupLat) || -1.9441;
+    const pickupLng = Number(params.pickupLng) || 30.0619;
+  
+    const initialPickup = { latitude: pickupLat, longitude: pickupLng };
+  
     setPickupLocation(initialPickup);
     setRegion({
-      latitude: initialPickup.latitude,
-      longitude: initialPickup.longitude,
+      latitude: pickupLat,
+      longitude: pickupLng,
       latitudeDelta: 0.05,
       longitudeDelta: 0.05,
     });
-
+  
     Animated.spring(slideAnim, {
       toValue: 0,
       useNativeDriver: true,
       tension: 50,
       friction: 8,
     }).start();
-  }, [params]);
+  }, [params.pickupLat, params.pickupLng]); // 👈 only rerun when values change
+  
 
-  // ✅ Autocomplete search
+  // Autocomplete search
   useEffect(() => {
     if (searchQuery.length > 2) {
       setSuggestions(mockPlaceSuggestions(searchQuery));
@@ -130,6 +155,65 @@ export default function RideBookingScreen() {
       setSuggestions([]);
     }
   }, [searchQuery]);
+
+  // Calculate distance and route when both locations are set
+  useEffect(() => {
+    if (pickupLocation && destinationLocation) {
+      calculateRouteAndDistance();
+    }
+  }, [pickupLocation, destinationLocation]);
+
+  const calculateRouteAndDistance = () => {
+    if (!pickupLocation || !destinationLocation) return;
+
+    // Calculate distance using Haversine formula
+    const R = 6371; // Earth's radius in km
+    const dLat = toRad(destinationLocation.latitude - pickupLocation.latitude);
+    const dLon = toRad(destinationLocation.longitude - pickupLocation.longitude);
+    const lat1 = toRad(pickupLocation.latitude);
+    const lat2 = toRad(destinationLocation.latitude);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const calculatedDistance = R * c;
+
+    setDistance(calculatedDistance);
+
+    // Create a simple curved route (simulate road path)
+    const points = 20;
+    const route = [];
+    for (let i = 0; i <= points; i++) {
+      const fraction = i / points;
+
+      // Linear interpolation with slight curve
+      const lat =
+        pickupLocation.latitude +
+        (destinationLocation.latitude - pickupLocation.latitude) * fraction +
+        Math.sin(fraction * Math.PI) * 0.005; // Add curve
+
+      const lng =
+        pickupLocation.longitude +
+        (destinationLocation.longitude - pickupLocation.longitude) * fraction +
+        Math.cos(fraction * Math.PI) * 0.005; // Add curve
+
+      route.push({ latitude: lat, longitude: lng });
+    }
+
+    setRouteCoordinates(route);
+
+    // Fit map to show both markers
+    if (mapRef.current) {
+      // @ts-ignore - fitToCoordinates exists on MapView ref
+      mapRef.current.fitToCoordinates([pickupLocation, destinationLocation], {
+        edgePadding: { top: 100, right: 50, bottom: 400, left: 50 },
+        animated: true,
+      });
+    }
+  };
+
+  const toRad = (value: number) => (value * Math.PI) / 180;
 
   const handleConfirmDate = (date: Date) => {
     setSelectedDate(date);
@@ -175,15 +259,21 @@ export default function RideBookingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Google Map */}
+   
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={region}
+        style={{ flex: 1 }}
+        initialRegion={region}
+        onRegionChangeComplete={setRegion}
         showsUserLocation
         showsMyLocationButton={false}
       >
+
+        {routeCoordinates.length > 0 && (
+          <Polyline coordinates={routeCoordinates} strokeColor={accentGreen} strokeWidth={4} lineDashPattern={[0]} />
+        )}
+
         {pickupLocation && (
           <Marker coordinate={pickupLocation} pinColor={accentGreen}>
             <View style={styles.customMarker}>
@@ -200,36 +290,32 @@ export default function RideBookingScreen() {
         )}
       </MapView>
 
-      {/* Buttons */}
-      <TouchableOpacity 
-  style={[styles.circleButton, styles.closeButton]}
-  onPress={() => router.back()} 
->
-  <X size={24} strokeWidth={2.5} color="#fff" />
-</TouchableOpacity>
+   
+      <TouchableOpacity style={[styles.circleButton, styles.closeButton]} onPress={() => router.back()}>
+        <X size={24} strokeWidth={2.5} color="#fff" />
+      </TouchableOpacity>
 
       <TouchableOpacity style={[styles.circleButton, styles.shareButton]}>
         <Share2 size={20} color="#fff" />
       </TouchableOpacity>
 
-      {/* Bottom Sheet */}
-      <Animated.View 
-        style={[
-          styles.bottomSheet,
-          { transform: [{ translateY: slideAnim }] }
-        ]}
-      >
+
+      {distance !== null && (
+        <View style={styles.distanceBadge}>
+          <MapPin size={16} color={darkGreen} />
+          <Text style={styles.distanceText}>{distance.toFixed(2)} km</Text>
+        </View>
+      )}
+
+
+      <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.handleBar} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Pickup & Destination */}
+
           <View style={styles.locationContainer}>
             <Text style={styles.sectionTitle}>Where to?</Text>
-            
-            <TouchableOpacity
-              style={styles.inputRow}
-              onPress={() => openLocationSearch('pickup')}
-              activeOpacity={0.7}
-            >
+
+            <TouchableOpacity style={styles.inputRow} onPress={() => openLocationSearch('pickup')} activeOpacity={0.7}>
               <View style={[styles.pointLabel, { backgroundColor: accentGreen }]}>
                 <MapPin size={20} color="#fff" />
               </View>
@@ -258,7 +344,6 @@ export default function RideBookingScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Vehicle Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Choose your ride</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vehicleScroll}>
@@ -275,15 +360,12 @@ export default function RideBookingScreen() {
                 >
                   <Text style={styles.vehicleEmoji}>{cat.emoji}</Text>
                   <Text style={styles.vehicleLabel}>{cat.name}</Text>
-                  <Text style={styles.vehiclePrice}>{cat.price}</Text>
+                  <Text style={styles.vehiclePrice}>{cat.price} RWF</Text>
                   <View style={styles.ratingContainer}>
                     <Star size={12} color={darkGreen} fill={darkGreen} />
                     <Text style={styles.ratingText}>{cat.rating}</Text>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.infoButton}
-                    onPress={() => setShowVehicleDetails(cat.name)}
-                  >
+                  <TouchableOpacity style={styles.infoButton} onPress={() => setShowVehicleDetails(cat.name)}>
                     <Text style={styles.infoButtonText}>ℹ️</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -291,17 +373,14 @@ export default function RideBookingScreen() {
             </ScrollView>
           </View>
 
-          {/* Payment & Pre-order */}
           <View style={styles.paymentContainer}>
-            <TouchableOpacity 
-              onPress={() => setDatePickerVisible(true)} 
+            <TouchableOpacity
+              onPress={() => setDatePickerVisible(true)}
               style={[styles.paymentOption, selectedDate && styles.paymentSelected]}
               activeOpacity={0.7}
             >
               <Clock size={20} color={darkGreen} />
-              <Text style={styles.paymentLabel}>
-                {selectedDate ? selectedDate.toLocaleDateString() : 'Pre-order'}
-              </Text>
+              <Text style={styles.paymentLabel}>{selectedDate ? selectedDate.toLocaleDateString() : 'Pre-order'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -314,12 +393,9 @@ export default function RideBookingScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Confirm Ride */}
-          <TouchableOpacity 
-            style={[
-              styles.confirmButton,
-              !destinationText && styles.confirmButtonDisabled
-            ]}
+    
+          <TouchableOpacity
+            style={[styles.confirmButton, !destinationText && styles.confirmButtonDisabled]}
             disabled={!destinationText}
             activeOpacity={0.8}
           >
@@ -330,12 +406,7 @@ export default function RideBookingScreen() {
         </ScrollView>
       </Animated.View>
 
-      {/* Location Search Modal */}
-      <Modal
-        visible={showLocationSearch !== null}
-        animationType="slide"
-        onRequestClose={closeLocationSearch}
-      >
+      <Modal visible={showLocationSearch !== null} animationType="slide" onRequestClose={closeLocationSearch}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
@@ -367,11 +438,7 @@ export default function RideBookingScreen() {
             data={suggestions}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.suggestionItem}
-                onPress={() => selectLocation(item)}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.suggestionItem} onPress={() => selectLocation(item)} activeOpacity={0.7}>
                 <MapPin size={20} color={darkGreen} />
                 <Text style={styles.suggestionText}>{item}</Text>
               </TouchableOpacity>
@@ -387,72 +454,110 @@ export default function RideBookingScreen() {
         </View>
       </Modal>
 
-      {/* Vehicle Details Modal */}
-      <Modal
-        visible={showVehicleDetails !== null}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowVehicleDetails(null)}
-      >
+      <Modal visible={showVehicleDetails !== null} animationType="fade" transparent onRequestClose={() => setShowVehicleDetails(null)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.vehicleDetailsCard}>
-            {vehicleCategories
-              .filter(cat => cat.name === showVehicleDetails)
-              .map(cat => (
-                <View key={cat.name}>
-                  <View style={styles.vehicleDetailsHeader}>
-                    <Text style={styles.vehicleDetailsEmoji}>{cat.emoji}</Text>
-                    <View style={styles.vehicleDetailsInfo}>
-                      <Text style={styles.vehicleDetailsName}>{cat.name}</Text>
-                      <View style={styles.vehicleDetailsRating}>
-                        <Star size={16} color={darkGreen} fill={darkGreen} />
-                        <Text style={styles.vehicleDetailsRatingText}>{cat.rating}</Text>
+          <ScrollView contentContainerStyle={styles.vehicleDetailsScrollContainer}>
+            <View style={styles.vehicleDetailsCard}>
+              {vehicleCategories
+                .filter(cat => cat.name === showVehicleDetails)
+                .map(cat => (
+                  <View key={cat.name}>
+                    <View style={styles.vehicleDetailsHeader}>
+                      <Text style={styles.vehicleDetailsEmoji}>{cat.emoji}</Text>
+                      <View style={styles.vehicleDetailsInfo}>
+                        <Text style={styles.vehicleDetailsName}>{cat.name}</Text>
+                        <View style={styles.vehicleDetailsRating}>
+                          <Star size={16} color={darkGreen} fill={darkGreen} />
+                          <Text style={styles.vehicleDetailsRatingText}>{cat.rating}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={() => setShowVehicleDetails(null)} style={styles.detailsCloseButton}>
+                        <X size={24} color={darkGreen} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.vehicleDetailsDescription}>{cat.description}</Text>
+
+               
+                    <View style={styles.driverSection}>
+                      <Text style={styles.vehicleDetailsSubtitle}>Driver Information</Text>
+                      <View style={styles.driverCard}>
+                        <Text style={styles.driverPhoto}>{cat.driverPhoto}</Text>
+                        <View style={styles.driverInfo}>
+                          <Text style={styles.driverName}>{cat.driverName}</Text>
+                          <View style={styles.driverRating}>
+                            <Star size={14} color={accentGreen} fill={accentGreen} />
+                            <Text style={styles.driverRatingText}>{cat.rating} rating</Text>
+                          </View>
+                        </View>
                       </View>
                     </View>
-                    <TouchableOpacity 
-                      onPress={() => setShowVehicleDetails(null)}
-                      style={styles.detailsCloseButton}
+
+
+                    <View style={styles.vehicleInfoSection}>
+                      <Text style={styles.vehicleDetailsSubtitle}>Vehicle Details</Text>
+
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>License Plate:</Text>
+                        <Text style={styles.infoValue}>{cat.licenseNumber}</Text>
+                      </View>
+
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Model:</Text>
+                        <Text style={styles.infoValue}>{cat.carModel}</Text>
+                      </View>
+
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Color:</Text>
+                        <Text style={styles.infoValue}>{cat.color}</Text>
+                      </View>
+
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Seats:</Text>
+                        <View style={styles.seatsContainer}>
+                          <Users size={18} color={darkGreen} />
+                          <Text style={styles.infoValue}>{cat.seats} seats</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                  
+                    <Text style={styles.vehicleDetailsSubtitle}>Features & Amenities</Text>
+                    {cat.features.map((feature, index) => (
+                      <View key={index} style={styles.featureItem}>
+                        <Text style={styles.featureBullet}>✓</Text>
+                        <Text style={styles.featureText}>{feature}</Text>
+                      </View>
+                    ))}
+
+                    <View style={styles.vehicleDetailsPriceRow}>
+                      <Text style={styles.vehicleDetailsPriceLabel}>Base Fare</Text>
+                      <Text style={styles.vehicleDetailsPrice}>{cat.price} RWF/km</Text>
+                    </View>
+
+                    {distance && (
+                      <View style={styles.estimatedFareRow}>
+                        <Text style={styles.estimatedFareLabel}>Estimated Total:</Text>
+                        <Text style={styles.estimatedFareValue}>{(parseFloat(cat.price) * distance).toFixed(0)} RWF</Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.selectVehicleButton}
+                      onPress={() => {
+                        setSelectedVehicle(cat.name);
+                        setShowVehicleDetails(null);
+                      }}
                     >
-                      <X size={24} color={darkGreen} />
+                      <Text style={styles.selectVehicleButtonText}>Select {cat.name}</Text>
                     </TouchableOpacity>
                   </View>
-
-                  <Text style={styles.vehicleDetailsDescription}>{cat.description}</Text>
-
-                  <View style={styles.vehicleDetailsRow}>
-                    <Users size={20} color={darkGreen} />
-                    <Text style={styles.vehicleDetailsCapacity}>{cat.capacity}</Text>
-                  </View>
-
-                  <Text style={styles.vehicleDetailsSubtitle}>Features:</Text>
-                  {cat.features.map((feature, index) => (
-                    <View key={index} style={styles.featureItem}>
-                      <Text style={styles.featureBullet}>✓</Text>
-                      <Text style={styles.featureText}>{feature}</Text>
-                    </View>
-                  ))}
-
-                  <View style={styles.vehicleDetailsPriceRow}>
-                    <Text style={styles.vehicleDetailsPriceLabel}>Starting from</Text>
-                    <Text style={styles.vehicleDetailsPrice}>{cat.price}</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.selectVehicleButton}
-                    onPress={() => {
-                      setSelectedVehicle(cat.name);
-                      setShowVehicleDetails(null);
-                    }}
-                  >
-                    <Text style={styles.selectVehicleButtonText}>Select {cat.name}</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-          </View>
+                ))}
+            </View>
+          </ScrollView>
         </View>
       </Modal>
 
-      {/* Date Picker */}
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="datetime"
@@ -463,11 +568,12 @@ export default function RideBookingScreen() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0FDF4' },
   map: { flex: 1 },
   loadingText: { fontSize: 18, color: darkGreen, fontWeight: '600' },
-  
+
   customMarker: {
     width: 40,
     height: 40,
@@ -500,6 +606,31 @@ const styles = StyleSheet.create({
   closeButton: { top: 48, left: 24 },
   shareButton: { top: screenHeight * 0.55, right: 24 },
 
+  distanceBadge: {
+    position: 'absolute',
+    top: screenHeight * 0.42,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: darkGreen,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 40,
+  },
+  distanceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: darkGreen,
+    marginLeft: 8,
+  },
+
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
@@ -527,9 +658,9 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 32 },
 
   section: { marginBottom: 24 },
-  sectionTitle: { 
-    fontSize: 20, 
-    fontWeight: '700', 
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: darkGreen,
     marginBottom: 16,
   },
@@ -569,9 +700,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  inputText: { 
+  inputText: {
     flex: 1,
-    fontSize: 16, 
+    fontSize: 16,
     fontWeight: '500',
     color: darkGreen,
   },
@@ -591,25 +722,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  vehicleSelected: { 
-    borderColor: darkGreen, 
+  vehicleSelected: {
+    borderColor: darkGreen,
     backgroundColor: '#DCFCE7',
     transform: [{ scale: 1.05 }],
   },
-  vehicleUnselected: { 
-    borderColor: '#D1D5DB', 
+  vehicleUnselected: {
+    borderColor: '#D1D5DB',
     backgroundColor: '#fff',
   },
   vehicleEmoji: { fontSize: 36, marginBottom: 8 },
-  vehicleLabel: { 
-    fontSize: 14, 
-    fontWeight: '700', 
+  vehicleLabel: {
+    fontSize: 14,
+    fontWeight: '700',
     color: darkGreen,
     marginBottom: 4,
   },
-  vehiclePrice: { 
-    fontSize: 16, 
-    fontWeight: '600', 
+  vehiclePrice: {
+    fontSize: 16,
+    fontWeight: '600',
     color: accentGreen,
   },
   ratingContainer: {
@@ -623,18 +754,12 @@ const styles = StyleSheet.create({
     color: darkGreen,
     marginLeft: 4,
   },
-  infoButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  infoButtonText: {
-    fontSize: 16,
-  },
+  infoButton: { position: 'absolute', top: 8, right: 8 },
+  infoButtonText: { fontSize: 16 },
 
-  paymentContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  paymentContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 24,
     gap: 12,
   },
@@ -649,213 +774,128 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     backgroundColor: '#fff',
   },
-  paymentSelected: { 
-    borderColor: darkGreen, 
+  paymentSelected: {
+    borderColor: darkGreen,
     backgroundColor: '#DCFCE7',
   },
-  paymentEmoji: { fontSize: 20, marginRight: 8 },
-  paymentLabel: { 
-    fontSize: 14, 
-    fontWeight: '600', 
+  paymentLabel: {
+    marginLeft: 8,
+    fontWeight: '600',
     color: darkGreen,
+  },
+  paymentEmoji: {
+    fontSize: 18,
   },
 
   confirmButton: {
-    width: '100%',
-    paddingVertical: 18,
-    borderRadius: 24,
     backgroundColor: darkGreen,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
-    shadowColor: darkGreen,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 24,
   },
   confirmButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#9CA3AF',
   },
-  confirmButtonText: { 
-    fontSize: 18, 
-    fontWeight: '700', 
+  confirmButtonText: {
     color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: darkGreen,
-  },
-  modalCloseButton: {
-    padding: 8,
-  },
+  // Modal & Search
+  modalContainer: { flex: 1, backgroundColor: '#fff', padding: 16, paddingTop: 48 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: darkGreen },
+  modalCloseButton: { padding: 8 },
+
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: lightGreen,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: darkGreen,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    marginBottom: 12,
   },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: darkGreen,
-  },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 16, color: darkGreen },
+
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  suggestionText: {
-    fontSize: 16,
-    color: darkGreen,
-    marginLeft: 16,
-  },
-  emptyState: {
-    padding: 48,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-  },
+  suggestionText: { marginLeft: 12, color: darkGreen, fontSize: 16 },
+  emptyState: { alignItems: 'center', padding: 24 },
+  emptyStateText: { color: '#9CA3AF' },
 
-  // Vehicle Details Modal
+  // Vehicle details modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  vehicleDetailsScrollContainer: {
     padding: 24,
+    paddingBottom: 48,
+    backgroundColor: 'transparent',
   },
   vehicleDetailsCard: {
     backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '85%',
   },
-  vehicleDetailsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  vehicleDetailsEmoji: {
-    fontSize: 48,
-    marginRight: 16,
-  },
-  vehicleDetailsInfo: {
-    flex: 1,
-  },
-  vehicleDetailsName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: darkGreen,
-    marginBottom: 4,
-  },
-  vehicleDetailsRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  vehicleDetailsRatingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: darkGreen,
-    marginLeft: 4,
-  },
-  detailsCloseButton: {
-    padding: 4,
-  },
-  vehicleDetailsDescription: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  vehicleDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  vehicleDetailsCapacity: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: darkGreen,
-    marginLeft: 8,
-  },
-  vehicleDetailsSubtitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: darkGreen,
-    marginBottom: 12,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  featureBullet: {
-    fontSize: 16,
-    color: accentGreen,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#374151',
-  },
-  vehicleDetailsPriceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  vehicleDetailsPriceLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  vehicleDetailsPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: accentGreen,
-  },
+  vehicleDetailsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  vehicleDetailsEmoji: { fontSize: 36, marginRight: 12 },
+  vehicleDetailsInfo: { flex: 1 },
+  vehicleDetailsName: { fontSize: 18, fontWeight: '800', color: darkGreen },
+  vehicleDetailsRating: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  vehicleDetailsRatingText: { marginLeft: 8, color: darkGreen, fontWeight: '700' },
+  detailsCloseButton: { padding: 6 },
+
+  vehicleDetailsDescription: { color: '#374151', marginBottom: 12 },
+  vehicleDetailsSubtitle: { fontWeight: '700', color: darkGreen, marginTop: 12, marginBottom: 8 },
+
+  driverSection: { marginBottom: 12 },
+  driverCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  driverPhoto: { fontSize: 32, marginRight: 12 },
+  driverInfo: { flex: 1 },
+  driverName: { fontWeight: '700', color: '#111827' },
+  driverRating: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  driverRatingText: { marginLeft: 8, color: '#6B7280' },
+
+  vehicleInfoSection: { marginBottom: 12 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  infoLabel: { color: '#6B7280', fontWeight: '600' },
+  infoValue: { color: '#111827', fontWeight: '700' },
+  seatsContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+  featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  featureBullet: { marginRight: 8, color: accentGreen, fontWeight: '700' },
+  featureText: { color: '#374151' },
+
+  vehicleDetailsPriceRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  vehicleDetailsPriceLabel: { color: '#6B7280' },
+  vehicleDetailsPrice: { fontWeight: '800', color: darkGreen },
+
+  estimatedFareRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  estimatedFareLabel: { color: '#6B7280' },
+  estimatedFareValue: { fontWeight: '800', color: darkGreen },
+
   selectVehicleButton: {
+    marginTop: 16,
     backgroundColor: darkGreen,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  selectVehicleButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  selectVehicleButtonText: { color: '#fff', fontWeight: '800' },
 });
